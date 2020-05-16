@@ -1,12 +1,11 @@
-export const createIterable = (eventEmitter, eventName) => {
+export const createIterable = (eventName, eventEmitter) => {
+  const eventsQue = []
+  const pushToQue = (payload) => {
+    eventsQue.push(payload)
+  }
+  eventEmitter.addListener(eventName, pushToQue)
   return {
     [Symbol.asyncIterator]() {
-      const eventsQue = []
-      const pushToQue = (payload) => {
-        eventsQue.push(payload)
-      }
-      eventEmitter.addListener(eventName, pushToQue)
-      
       return {
         eventsQue,
         next() {

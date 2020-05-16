@@ -8,11 +8,11 @@
       "type": "node",
       "request": "launch",
       "name": "Launch Program",
-      // "runtimeArgs": [
-      //   "-r",
-      //   "esm"
-      // ],
-      "program": "${workspaceFolder}/eventEmitterAsyncIterable.js"
+      "runtimeArgs": [
+        "-r",
+        "esm"
+      ],
+      "program": "${workspaceFolder}/server.js"
     }
   ]
 }

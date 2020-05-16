@@ -8,7 +8,7 @@ import { parse } from 'graphql/language'
 import ws from 'ws'
 
 import { RootSchema } from './graphql/Root'
-import { newMessageEvent } from './graphql/subscriptions/NewMessageSub'
+import { subscribePubSub } from './pubsub'
 
 const PORT = 3000
 
@@ -26,22 +26,24 @@ app.use(express.static(path.join(__dirname, 'frontend/build')))
 app.get('/', (request, response) => {
   response.sendFile(path.resolve(__dirname, './frontend/build/index.html'))
 })
+app.get('/chat', (request, response) => {
+  response.sendFile(path.resolve(__dirname, './frontend/build/chat.html'))
+})
+
+
 
 app.use('/graphql', (req, res) => {  
   const { body = {} } = req
 
   const document = parse(body.query)
 
-  console.log({ document });
+  // console.log({ document });
 
   Promise.resolve(
     execute({
       schema: RootSchema,
       document,
       rootValue: {},
-      contextValue: {
-        subscribers: wsServer.clients
-      }
     })
   )  
     .then(gqlRes => {
@@ -58,7 +60,7 @@ const wsOnMessage = (message, connection) => {
   const body = JSON.parse(message)
   const document = parse(body.query)
 
-  console.log({ document });
+  let subName
 
   Promise.resolve(
     subscribe({
@@ -66,26 +68,19 @@ const wsOnMessage = (message, connection) => {
       document,
       rootValue: {},
       contextValue: {
-        subscribers: wsServer.clients
+        connection,
+        nameSub: (eventName) => {
+          subName = eventName
+        }
       }
     })
   )
-    .then(gqlRes => {
-      console.log('gqlRes:', gqlRes)
-        newMessageEvent.addListener('newUser', () => {
-          Promise.resolve(gqlRes.next())
-          .then((subRes) => {
-            console.log('subRes:', subRes);
-            connection.send(JSON.stringify(subRes.value))
-          })
-          .catch((subResErr) => {
-            console.log('resolver ended with error:', subResErr);
-          })
-        })
+    .then((gqlRes) => {
+      console.log('subName:', subName);
+      subscribePubSub(subName, gqlRes, connection)
     })
     .catch(gqlErr => {
       console.log('gqlErr:', gqlErr)
-      // res.send(gqlErr)
     })
 }
 

@@ -20,9 +20,11 @@ const resolve = (payload) => {
   return payload
 }
 
-const subscribe = () => {
-  console.log('i am subs');
-  return createIterable(newMessageEvent, 'newUser')
+const subscribe = (parentValue, args, context) => {
+  const eventName = 'newMessage'
+  context.nameSub(eventName)
+  const iterable = createIterable(eventName, newMessageEvent)
+  return iterable
 }
 
 export default {

@@ -6,6 +6,7 @@ import {
 import { writeDB } from '../../db/writedb'
 import { readDB } from '../../db/readdb'
 import { newMessageEvent } from '../subscriptions/NewMessageSub'
+import { publishPubSub } from '../../pubsub'
 
 const typeDec = new GraphQLObjectType({
   name: 'AddMessage',
@@ -18,13 +19,14 @@ const argsDec = {
   message: { type: GraphQLString },
 }
 
-const resolveDec = (parentValue, args, context) => {
+const resolveDec = (parentValue, args) => {
   const db = readDB({ collection: 'messages' })
   const newMessage = { message: args.message }
   db.push(newMessage)
   writeDB({ collection: 'messages', data: db })
   try {
-    newMessageEvent.emit('newUser', newMessage)
+    newMessageEvent.emit('newMessage', newMessage)
+    const subscribers = publishPubSub('newMessage')
   } catch (err) {
     console.log('got subscribers error:', err);
   }
