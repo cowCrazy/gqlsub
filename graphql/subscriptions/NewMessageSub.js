@@ -16,7 +16,6 @@ const NewMessageSub = new GraphQLObjectType({
 })
 
 const resolve = (payload) => {
-  console.log('i am resolving', payload);
   return payload
 }
 

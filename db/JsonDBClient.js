@@ -24,7 +24,6 @@ export class JsonDBClient {
   }
 
   writeCollection(collectionName, data) {
-    console.log('writing');
     const filePath = `${this.dbPath}/${collectionName}.json`
     writeFileSync(filePath, JSON.stringify(data, null, 2))
   }
@@ -55,7 +54,6 @@ export class JsonDBClient {
         }
       }
     } else {
-      console.log('starting to watch:', collectionName, { addition });
       const filePath = `${this.dbPath}/${collectionName}.json`
       const watchStartData = this.readCollection(collectionName)
       this.dbMemoryData[collectionName] = watchStartData
@@ -87,20 +85,16 @@ export class JsonDBClient {
       }
   
       const watchProcess = watchFile(filePath, { interval: 300 }, () => {
-        console.log('changed:', collectionName)
         const oldContent = this.dbMemoryData[collectionName]
         const newContent = JSON.parse(readFileSync(filePath))
         if (oldContent.length < newContent.length) {
           const addedItem = differenceWith(newContent, oldContent, isEqual)
-          console.log('addition:', addedItem)
           this.watchedCollections[collectionName].addition.forEach((func) => func())
         } else if (oldContent.length > newContent.length) {
           const removedItem = differenceWith(oldContent, newContent, isEqual)
-          console.log('removal:', removedItem)
           this.watchedCollections[collectionName].removal.forEach((func) => func())
         } else {
           const changedItem = differenceWith(newContent, oldContent, isEqual)
-          console.log('change:', changedItem)
           this.watchedCollections[collectionName].change.forEach((func) => func())
         }
         this.dbMemoryData[collectionName] = newContent

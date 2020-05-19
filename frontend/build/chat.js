@@ -55,7 +55,6 @@ const gqlSendMessage = (message) => {
 const wsOnMessage = (msg) => {
   console.log('got ws msg:', msg);
   const data = JSON.parse(msg.data)
-  console.log(data);
   
   if (data.errors) {
     console.log('got error back');
@@ -167,7 +166,6 @@ wsConnection.onclose = () => {
 }
 
 send.addEventListener('click', () => {
-  console.log('clicked');
   wsConnection.send(gqlSendMessage(message.value))
   message.value = ''
 })

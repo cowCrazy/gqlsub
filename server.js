@@ -40,11 +40,7 @@ app.get('/chat', (request, response) => {
 
 app.use('/graphql', (req, res) => {  
   const { body = {} } = req
-
   const document = parse(body.query)
-
-  // console.log({ document });
-
   Promise.resolve(
     execute({
       schema: RootSchema,
@@ -59,24 +55,22 @@ app.use('/graphql', (req, res) => {
       res.send(gqlRes)
     })
     .catch(gqlErr => {
-      console.log('gqlErr:', gqlErr)
+      console.error('gqlErr:', gqlErr)
       res.send(gqlErr)
     })
 })
 
 const wsOnMessage = (message, connection) => {
-  console.log('connection message:', message)
+  console.info('connection message:', message)
   const { query, type, collection } = JSON.parse(message)
   
   const document = parse(query)
 
   const valRes = validate(RootSchema, document)
   if (valRes.length > 0) {
-    console.log('val res:', JSON.stringify(valRes));
+    console.error('val res:', JSON.stringify(valRes));
     connection.send(JSON.stringify({ errors: [{ error: valRes[0].message }] }))
   } else {
-    console.log({ document });
-
     const operation = document.definitions[0].operation
 
     if (operation === 'subscription') {
@@ -101,11 +95,6 @@ const wsOnMessage = (message, connection) => {
         })
       )
         .then((gqlRes) => {
-          console.log('gqlRes:', gqlRes);
-          
-          console.log('subName:', subName);
-          console.log('dbWatchNames:', dbWatchNames);
-        
           dbClient.watchCollection(
             dbWatchNames.collectionName,
             {
@@ -115,7 +104,7 @@ const wsOnMessage = (message, connection) => {
           subscribePubSub(subName, gqlRes, connection, collection)
         })
         .catch(gqlErr => {
-          console.log('gqlErr:', gqlErr)
+          console.error('gqlErr:', gqlErr)
         })
     } else {
       Promise.resolve(
@@ -132,7 +121,7 @@ const wsOnMessage = (message, connection) => {
           connection.send(JSON.stringify({ ...gqlRes, collection, type }))
         })
         .catch(gqlErr => {
-          console.log('gqlErr:', gqlErr)
+          console.error('gqlErr:', gqlErr)
           connection.send(JSON.stringify(gqlErr))
         })
     }
@@ -149,6 +138,6 @@ const wsOnConnection = (connection, req) => {
 wsServer.on('connection', wsOnConnection)
 
 server.listen(PORT, () => {
-  console.log(`GraphQL Server is now running on http://localhost:${PORT}/graphql`);
-  console.log(`Subscriptions are running on ws://localhost:${PORT}/subscriptions`);
+  console.success(`GraphQL Server is now running on http://localhost:${PORT}/graphql`);
+  console.success(`Subscriptions are running on ws://localhost:${PORT}/subscriptions`);
 })

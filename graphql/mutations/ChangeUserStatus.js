@@ -30,7 +30,7 @@ const resolveDec = (parentValue, args) => {
     usersStatusEvent.emit('newMessage', newMessage)
     const subscribers = publishPubSub('newMessage')
   } catch (err) {
-    console.log('got subscribers error:', err);
+    console.error('got subscribers error:', err);
   }
   return { message: args.message }
 }

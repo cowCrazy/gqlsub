@@ -8,16 +8,13 @@ const result = document.querySelector('#result')
 
 const connect = document.querySelector('#connect')
 connect.addEventListener('click', () => {
-  console.log('connecting to ws');
   
   wsConnection = new WebSocket(`ws://localhost:3000/subscriptions`)
   wsConnection.onopen = (initMsg) => {
-    console.log('got open msg:', initMsg);
     connect.style.backgroundColor = 'green'
   }
 
   wsConnection.onmessage = (msg) => {
-    console.log('got normal msg:', msg);
     const data = JSON.parse(msg.data)
     const entry = document.createElement('p')
     entry.innerHTML = data.data.newMessageSub.message
@@ -65,7 +62,6 @@ mutation.addEventListener('click', () => {
 })
 
 send.addEventListener('click', () => {
-  console.log('clicked');
   const queryString = gqlString.value
   // query.value = JSON.stringify(queryString, null, 4)
 

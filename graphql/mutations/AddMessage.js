@@ -19,12 +19,8 @@ const args = {
   message: { type: GraphQLString },
 }
 
-const resolve = (parentValue, args, context) => {
-  console.log({context});
-  
-  const db = context.dbClient.readCollection('messages')
-  console.log('my current db:', db);
-  
+const resolve = (parentValue, args, context) => {  
+  const db = context.dbClient.readCollection('messages')  
   const newMessage = { message: args.message }
   db.push(newMessage)
   context.dbClient.writeCollection('messages', db)
@@ -32,7 +28,7 @@ const resolve = (parentValue, args, context) => {
     newMessageEvent.emit('newMessage', newMessage)
     const subscribers = publishPubSub('newMessage')
   } catch (err) {
-    console.log('got subscribers error:', err);
+    console.error('got subscribers error:', err);
   }
   return { message: args.message }
 }

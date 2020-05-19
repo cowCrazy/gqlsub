@@ -1,9 +1,7 @@
 const pubsub = {}
 
 export const publishPubSub = (name) => {
-  const subscribers = pubsub[name]
-  // console.log('subscribers:', subscribers);
-  
+  const subscribers = pubsub[name]  
   subscribers.forEach((subscriber) => {
     subscriber.payload.next()
       .then((res) => {        
@@ -11,14 +9,12 @@ export const publishPubSub = (name) => {
         subscriber.connection.send(JSON.stringify({ ...value, collection: subscriber.collection }))
       })
       .catch((err) => {
-        console.log('pub error:', error);
+        console.error('pub error:', error);
       })
   })
 }
 
-export const subscribePubSub = (name, payload, connection, collection) => {
-  console.log('saving payload:', payload);
-  
+export const subscribePubSub = (name, payload, connection, collection) => {  
   if (pubsub[name]) {
     pubsub[name].push({
       payload,

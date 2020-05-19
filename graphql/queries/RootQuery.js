@@ -22,7 +22,6 @@ export const RootQuery = new GraphQLObjectType({
         }
       }),
       resolve: (parentValue, args, context) => {
-        console.log('running');
         return 'read success'
       }
     }
