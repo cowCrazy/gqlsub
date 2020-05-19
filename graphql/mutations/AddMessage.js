@@ -8,22 +8,26 @@ import { readDB } from '../../db/readdb'
 import { newMessageEvent } from '../subscriptions/NewMessageSub'
 import { publishPubSub } from '../../pubsub'
 
-const typeDec = new GraphQLObjectType({
+const type = new GraphQLObjectType({
   name: 'AddMessage',
   fields: {
     message: { type: GraphQLString },
   },
 })
 
-const argsDec = {
+const args = {
   message: { type: GraphQLString },
 }
 
-const resolveDec = (parentValue, args) => {
-  const db = readDB({ collection: 'messages' })
+const resolve = (parentValue, args, context) => {
+  console.log({context});
+  
+  const db = context.dbClient.readCollection('messages')
+  console.log('my current db:', db);
+  
   const newMessage = { message: args.message }
   db.push(newMessage)
-  writeDB({ collection: 'messages', data: db })
+  context.dbClient.writeCollection('messages', db)
   try {
     newMessageEvent.emit('newMessage', newMessage)
     const subscribers = publishPubSub('newMessage')
@@ -34,7 +38,7 @@ const resolveDec = (parentValue, args) => {
 }
 
 export default {
-  type: typeDec,
-  args: argsDec,
-  resolve: resolveDec,
+  type,
+  args,
+  resolve,
 }

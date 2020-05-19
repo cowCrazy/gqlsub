@@ -1,3 +1,5 @@
+import './superLog'
+
 import { createServer } from 'http'
 import path from 'path'
 
@@ -5,12 +7,18 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import { execute, subscribe } from 'graphql'
 import { parse } from 'graphql/language'
+import { validate } from 'graphql/validation'
 import ws from 'ws'
 
 import { RootSchema } from './graphql/Root'
-import { subscribePubSub } from './pubsub'
+import { subscribePubSub, publishPubSub } from './pubsub'
+import { writeFileSync } from 'fs'
+import { inspect } from 'util'
+import { JsonDBClient } from './db/JsonDBClient'
 
-const PORT = 3000
+const dbClient = new JsonDBClient()
+
+const PORT = process.argv[2] || 3000
 
 const app = express()
 
@@ -30,8 +38,6 @@ app.get('/chat', (request, response) => {
   response.sendFile(path.resolve(__dirname, './frontend/build/chat.html'))
 })
 
-
-
 app.use('/graphql', (req, res) => {  
   const { body = {} } = req
 
@@ -44,6 +50,9 @@ app.use('/graphql', (req, res) => {
       schema: RootSchema,
       document,
       rootValue: {},
+      contextValue: {
+        dbClient,
+      }
     })
   )  
     .then(gqlRes => {
@@ -57,37 +66,84 @@ app.use('/graphql', (req, res) => {
 
 const wsOnMessage = (message, connection) => {
   console.log('connection message:', message)
-  const body = JSON.parse(message)
-  const document = parse(body.query)
+  const { query, type, collection } = JSON.parse(message)
+  
+  const document = parse(query)
 
-  let subName
+  const valRes = validate(RootSchema, document)
+  if (valRes.length > 0) {
+    console.log('val res:', JSON.stringify(valRes));
+    connection.send(JSON.stringify({ errors: [{ error: valRes[0].message }] }))
+  } else {
+    console.log({ document });
 
-  Promise.resolve(
-    subscribe({
-      schema: RootSchema,
-      document,
-      rootValue: {},
-      contextValue: {
-        connection,
-        nameSub: (eventName) => {
-          subName = eventName
-        }
-      }
-    })
-  )
-    .then((gqlRes) => {
-      console.log('subName:', subName);
-      subscribePubSub(subName, gqlRes, connection)
-    })
-    .catch(gqlErr => {
-      console.log('gqlErr:', gqlErr)
-    })
+    const operation = document.definitions[0].operation
+
+    if (operation === 'subscription') {
+      let subName
+      const dbWatchNames = {} 
+      Promise.resolve(
+        subscribe({
+          schema: RootSchema,
+          document,
+          rootValue: {},
+          contextValue: {
+            connection,
+            nameSub: (eventName) => {
+              subName = eventName
+            },
+            nameDBWatch: (collectionName, eventType) => {
+              dbWatchNames.collectionName = collectionName
+              dbWatchNames.eventType = eventType
+            },
+            dbClient,
+          }
+        })
+      )
+        .then((gqlRes) => {
+          console.log('gqlRes:', gqlRes);
+          
+          console.log('subName:', subName);
+          console.log('dbWatchNames:', dbWatchNames);
+        
+          dbClient.watchCollection(
+            dbWatchNames.collectionName,
+            {
+              [dbWatchNames.eventType]: () => publishPubSub(subName)
+            },
+          )
+          subscribePubSub(subName, gqlRes, connection, collection)
+        })
+        .catch(gqlErr => {
+          console.log('gqlErr:', gqlErr)
+        })
+    } else {
+      Promise.resolve(
+        execute({
+          schema: RootSchema,
+          document,
+          rootValue: {},
+          contextValue: {
+            dbClient,
+          }
+        })
+      )  
+        .then(gqlRes => {
+          connection.send(JSON.stringify({ ...gqlRes, collection, type }))
+        })
+        .catch(gqlErr => {
+          console.log('gqlErr:', gqlErr)
+          connection.send(JSON.stringify(gqlErr))
+        })
+    }
+  }
 }
 
 const wsOnConnection = (connection, req) => {
   const url = req.url
-  wsServer.clients.add(connection)
+
   connection.on('message', (message) => wsOnMessage(message, connection))
+
 }
 
 wsServer.on('connection', wsOnConnection)

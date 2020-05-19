@@ -23,6 +23,7 @@ const resolve = (payload) => {
 const subscribe = (parentValue, args, context) => {
   const eventName = 'newMessage'
   context.nameSub(eventName)
+  context.nameDBWatch('messages', 'addition')
   const iterable = createIterable(eventName, newMessageEvent)
   return iterable
 }

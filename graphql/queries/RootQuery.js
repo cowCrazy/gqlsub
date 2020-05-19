@@ -1,5 +1,6 @@
 import { GraphQLObjectType } from 'graphql'
 import Messages from './Messages';
+import Users from './Users';
 
 export const RootQuery = new GraphQLObjectType({
   name: 'RootQuery',
@@ -12,6 +13,11 @@ export const RootQuery = new GraphQLObjectType({
             type: Messages.type,
             args: Messages.args,
             resolve: Messages.resolve,
+          },
+          users: {
+            type: Users.type,
+            args: Users.args,
+            resolve: Users.resolve,
           }
         }
       }),
