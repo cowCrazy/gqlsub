@@ -1,5 +1,5 @@
 const ipAddress = 'localhost'
-const serverPort = '3000'
+const serverPort = '3001'
 let wsConnection
 
 const send = document.querySelector('#send')
@@ -73,8 +73,10 @@ const wsOnConnection = (initMsg) => {
     type: 'mutation',
     query: `
       mutation {
-        changeUsersStatus(status: "online") {
-          message
+        writer {
+          changeUsersStatus(status: "online") {
+            message
+          }
         }
       }
     `
