@@ -3,10 +3,7 @@ import {
   GraphQLString,
 } from 'graphql'
 
-import { writeDB } from '../../db/writedb'
-import { readDB } from '../../db/readdb'
 import { newMessageEvent } from '../subscriptions/NewMessageSub'
-import { publishPubSub } from '../../pubsub'
 
 const type = new GraphQLObjectType({
   name: 'AddMessage',
@@ -26,7 +23,7 @@ const resolve = (parentValue, args, context) => {
   context.dbClient.writeCollection('messages', db)
   try {
     newMessageEvent.emit('newMessage', newMessage)
-    const subscribers = publishPubSub('newMessage')
+    const subscribers = context.pubsubClient.publish('newMessage')
   } catch (err) {
     console.error('got subscribers error:', err);
   }

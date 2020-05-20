@@ -8,15 +8,17 @@ import bodyParser from 'body-parser'
 import { execute, subscribe } from 'graphql'
 import { parse } from 'graphql/language'
 import { validate } from 'graphql/validation'
+import cors from 'cors'
 import ws from 'ws'
 
 import { RootSchema } from './graphql/Root'
-import { subscribePubSub, publishPubSub } from './pubsub'
+import { PubSub } from './pubsub'
 import { writeFileSync } from 'fs'
 import { inspect } from 'util'
 import { JsonDBClient } from './db/JsonDBClient'
 
 const dbClient = new JsonDBClient()
+const pubsubClient = new PubSub()
 
 const PORT = process.argv[2] || 3000
 
@@ -29,6 +31,12 @@ const wsServer = new ws.Server({
   path: '/subscriptions'
 })
 
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
+
+app.use(cors(corsOptions))
 app.use(bodyParser.json())
 app.use(express.static(path.join(__dirname, 'frontend/build')))
 app.get('/', (request, response) => {
@@ -36,6 +44,9 @@ app.get('/', (request, response) => {
 })
 app.get('/chat', (request, response) => {
   response.sendFile(path.resolve(__dirname, './frontend/build/chat.html'))
+})
+app.get('/ping', (request, response) => {  
+  response.send(JSON.stringify({ message: 'welcome'}))
 })
 
 app.use('/graphql', (req, res) => {  
@@ -60,7 +71,7 @@ app.use('/graphql', (req, res) => {
     })
 })
 
-const wsOnMessage = (message, connection) => {
+const wsOnMessage = (message, connection, connectionId) => {
   console.info('connection message:', message)
   const { query, type, collection } = JSON.parse(message)
   
@@ -91,6 +102,7 @@ const wsOnMessage = (message, connection) => {
               dbWatchNames.eventType = eventType
             },
             dbClient,
+            pubsubClient,
           }
         })
       )
@@ -98,10 +110,10 @@ const wsOnMessage = (message, connection) => {
           dbClient.watchCollection(
             dbWatchNames.collectionName,
             {
-              [dbWatchNames.eventType]: () => publishPubSub(subName)
+              [dbWatchNames.eventType]: () => pubsubClient.publish(subName)
             },
           )
-          subscribePubSub(subName, gqlRes, connection, collection)
+          pubsubClient.subscribe(subName, gqlRes, connection, collection, connectionId)
         })
         .catch(gqlErr => {
           console.error('gqlErr:', gqlErr)
@@ -114,6 +126,7 @@ const wsOnMessage = (message, connection) => {
           rootValue: {},
           contextValue: {
             dbClient,
+            pubsubClient,
           }
         })
       )  
@@ -128,14 +141,24 @@ const wsOnMessage = (message, connection) => {
   }
 }
 
+let connectionId = 1
 const wsOnConnection = (connection, req) => {
   const url = req.url
 
-  connection.on('message', (message) => wsOnMessage(message, connection))
+  connection.on('message', (message) => wsOnMessage(message, connection, connectionId))
+  connection.on('close', (message) => {
+    console.log('connection closed');
+    pubsubClient.drop(connectionId)
+  })
+  connection.on('error', (message) => {
+    console.log('connection error');
+  })
 
+  connectionId += 1
 }
 
 wsServer.on('connection', wsOnConnection)
+
 
 server.listen(PORT, () => {
   console.success(`GraphQL Server is now running on http://localhost:${PORT}/graphql`);

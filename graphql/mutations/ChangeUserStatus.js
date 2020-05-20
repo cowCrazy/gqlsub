@@ -3,10 +3,7 @@ import {
   GraphQLString,
 } from 'graphql'
 
-import { writeDB } from '../../db/writedb'
-import { readDB } from '../../db/readdb'
-import { usersStatusEvent } from '../subscriptions/NewMessageSub'
-import { publishPubSub } from '../../pubsub'
+import { usersStatusEvent } from '../subscriptions/UsersStatusSub'
 
 const typeDec = new GraphQLObjectType({
   name: 'ChangeUserStatus',
@@ -21,14 +18,14 @@ const argsDec = {
   status: { type: GraphQLString },
 }
 
-const resolveDec = (parentValue, args) => {
-  const db = readDB({ collection: 'users' })
+const resolveDec = (parentValue, args, context) => {
+  const db = context.dbClient.readCollection({ collection: 'users' })
   const { username, status } = args
   
-  writeDB({ collection: 'users', data: db })
+  context.dbClient.writeCollection({ collection: 'users', data: db })
   try {
     usersStatusEvent.emit('newMessage', newMessage)
-    const subscribers = publishPubSub('newMessage')
+    const subscribers = context.pubsubClient.publish('newMessage')
   } catch (err) {
     console.error('got subscribers error:', err);
   }

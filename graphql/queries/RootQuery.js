@@ -1,4 +1,5 @@
 import { GraphQLObjectType } from 'graphql'
+
 import Messages from './Messages';
 import Users from './Users';
 

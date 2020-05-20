@@ -1,5 +1,7 @@
 import { GraphQLObjectType } from 'graphql'
+
 import AddMessage from './AddMessage';
+import ChangeUserStatus from './ChangeUserStatus';
 
 export const RootMutation = new GraphQLObjectType({
   name: 'RootMutation',
@@ -12,6 +14,11 @@ export const RootMutation = new GraphQLObjectType({
             type: AddMessage.type,
             args: AddMessage.args,
             resolve: AddMessage.resolve,
+          },
+          changeUsersStatus: {
+            type: ChangeUserStatus.type,
+            args: ChangeUserStatus.args,
+            resolve: ChangeUserStatus.resolve,
           }
         }
       }),

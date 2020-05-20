@@ -3,7 +3,7 @@ import {
   GraphQLList,
   GraphQLInt,
 } from 'graphql'
-import { readDB } from '../../db/readdb'
+
 import Message from './Message'
 
 const typeDec = new GraphQLObjectType({
@@ -22,7 +22,7 @@ const typeDec = new GraphQLObjectType({
 const argsDec = {}
 
 const resolveDec = (parentValue, args, context) => {  
-  const result = readDB({ collection: 'messages' })  
+  const result = context.dbClient.readCollection('messages')  
   return {
     list: result,
     count: result.length,
