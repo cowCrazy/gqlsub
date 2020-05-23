@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body style="width: 100%; height: 600px">
+  <h1>Welcome Home</h1>
+  <div style="display: flex; width: 800px">
+    <div style="flex: 1; height: 400px">
+      <button id="send">Send</button>
+      <textarea id="gqlString" style="width: 100%; height: 100%"></textarea>
+      <button id="query">query</button>
+      <button id="mutation">mutation</button>
+      <button id="connect" style="background-color: red;">connect</button>
+      <button id="subscribe">subscribe</button>
+    </div>
+    <div id="result" style="flex: 1; height: 400px; margin-left: 20px;">
+    </div>
+  </div>
+  <script src="index.js"></script>
+</body>
+</html>
