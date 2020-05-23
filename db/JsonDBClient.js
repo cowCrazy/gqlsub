@@ -16,9 +16,9 @@ export class JsonDBClient {
   }
 
   readCollection(collectionName) {    
-    if (this.dbMemoryData[collectionName] && this.watchedCollections[collectionName]) {      
-      return this.dbMemoryData[collectionName]
-    }
+    // if (this.dbMemoryData[collectionName] && this.watchedCollections[collectionName]) {      
+    //   return this.dbMemoryData[collectionName]
+    // }
     const filePath = `${this.dbPath}/${collectionName}.json`
     return JSON.parse(readFileSync(filePath))
   }
@@ -29,6 +29,8 @@ export class JsonDBClient {
   }
 
   watchCollection(collectionName, { addition, removal, change }) {
+    console.log('started a watch process:', collectionName, { addition, removal, change });
+    
     // TODO: need to have a call back attached with id to each watch callback function
     // so later on it can be tracked and remove
     if (this.watchedCollections[collectionName]) {
@@ -84,18 +86,32 @@ export class JsonDBClient {
         }
       }
   
-      const watchProcess = watchFile(filePath, { interval: 300 }, () => {
+      watchFile(filePath, { interval: 300 }, () => {
         const oldContent = this.dbMemoryData[collectionName]
         const newContent = JSON.parse(readFileSync(filePath))
+        console.log({
+          oldContent,
+          newContent,
+        })
         if (oldContent.length < newContent.length) {
           const addedItem = differenceWith(newContent, oldContent, isEqual)
-          this.watchedCollections[collectionName].addition.forEach((func) => func())
+          console.log('item added:', addedItem);
+          
+          this.watchedCollections[collectionName].addition.forEach((func) => {
+            console.log('func:', func);
+            
+            func(addedItem)
+          })
         } else if (oldContent.length > newContent.length) {
           const removedItem = differenceWith(oldContent, newContent, isEqual)
-          this.watchedCollections[collectionName].removal.forEach((func) => func())
+          console.log('removedItem:', removedItem);
+
+          this.watchedCollections[collectionName].removal.forEach((func) => func(removedItem))
         } else {
           const changedItem = differenceWith(newContent, oldContent, isEqual)
-          this.watchedCollections[collectionName].change.forEach((func) => func())
+          console.log('changedItem:', changedItem);
+          
+          this.watchedCollections[collectionName].change.forEach((func) => func(changedItem))
         }
         this.dbMemoryData[collectionName] = newContent
       })

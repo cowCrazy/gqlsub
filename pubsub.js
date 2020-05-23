@@ -22,11 +22,12 @@ export class PubSub {
     }
   }
 
-  publish(name) {
+  publish(name, payload) {
     const subscribers = this.pubsub[name]  
     subscribers.forEach((subscriber) => {
       subscriber.payload.next()
-        .then((res) => {        
+        .then((res) => {
+          console.log('pubres:', res);
           const { value } = res  
           subscriber.connection.send(JSON.stringify({ ...value, collection: subscriber.collection }))
         })

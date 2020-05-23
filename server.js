@@ -75,18 +75,25 @@ const wsOnMessage = (message, connection, connectionId) => {
   console.info('connection message:', message)
   const { query, type, collection } = JSON.parse(message)
   
-  const document = parse(query)
+  let document
+  try {
+    document = parse(query)
+  } catch (error) {
+    console.error('pars res:', JSON.stringify(error));
+    connection.send(JSON.stringify({ errors: [{ error }] }))
+    return
+  }
 
   const valRes = validate(RootSchema, document)
   if (valRes.length > 0) {
     console.error('val res:', JSON.stringify(valRes));
     connection.send(JSON.stringify({ errors: [{ error: valRes[0].message }] }))
+    return
   } else {
     const operation = document.definitions[0].operation
 
     if (operation === 'subscription') {
-      let subName
-      const dbWatchNames = {} 
+      const pubsubConfigs = {} 
       Promise.resolve(
         subscribe({
           schema: RootSchema,
@@ -94,12 +101,11 @@ const wsOnMessage = (message, connection, connectionId) => {
           rootValue: {},
           contextValue: {
             connection,
-            nameSub: (eventName) => {
-              subName = eventName
-            },
-            nameDBWatch: (collectionName, eventType) => {
-              dbWatchNames.collectionName = collectionName
-              dbWatchNames.eventType = eventType
+            assignConfigs: (collectionName, DBEventType, systemEvent, subName) => {
+              pubsubConfigs.collectionName = collectionName
+              pubsubConfigs.DBEventType = DBEventType
+              pubsubConfigs.systemEvent = systemEvent
+              pubsubConfigs.subName = subName
             },
             dbClient,
             pubsubClient,
@@ -108,12 +114,17 @@ const wsOnMessage = (message, connection, connectionId) => {
       )
         .then((gqlRes) => {
           dbClient.watchCollection(
-            dbWatchNames.collectionName,
+            pubsubConfigs.collectionName,
             {
-              [dbWatchNames.eventType]: () => pubsubClient.publish(subName)
+              [pubsubConfigs.DBEventType]: (payload) => {
+                console.log('db watch got payload:', payload);
+                
+                pubsubConfigs.systemEvent.emit(pubsubConfigs.subName, payload)
+                pubsubClient.publish(pubsubConfigs.subName)
+              }
             },
           )
-          pubsubClient.subscribe(subName, gqlRes, connection, collection, connectionId)
+          pubsubClient.subscribe(pubsubConfigs.subName, gqlRes, connection, collection, connectionId)
         })
         .catch(gqlErr => {
           console.error('gqlErr:', gqlErr)

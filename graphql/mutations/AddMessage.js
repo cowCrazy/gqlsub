@@ -3,8 +3,6 @@ import {
   GraphQLString,
 } from 'graphql'
 
-import { newMessageEvent } from '../subscriptions/NewMessageSub'
-
 const type = new GraphQLObjectType({
   name: 'AddMessage',
   fields: {
@@ -21,13 +19,7 @@ const resolve = (parentValue, args, context) => {
   const newMessage = { message: args.message }
   db.push(newMessage)
   context.dbClient.writeCollection('messages', db)
-  try {
-    newMessageEvent.emit('newMessage', newMessage)
-    const subscribers = context.pubsubClient.publish('newMessage')
-  } catch (err) {
-    console.error('got subscribers error:', err);
-  }
-  return { message: args.message }
+  return newMessage
 }
 
 export default {

@@ -19,16 +19,10 @@ const argsDec = {
 }
 
 const resolveDec = (parentValue, args, context) => {
-  const db = context.dbClient.readCollection({ collection: 'users' })
-  const { username, status } = args
-  
+  const collectionData = context.dbClient.readCollection({ collection: 'users' })
+  const user = collectionData.find((items) => items.username === args.username)
+  const { username, status } = args 
   context.dbClient.writeCollection({ collection: 'users', data: db })
-  try {
-    usersStatusEvent.emit('newMessage', newMessage)
-    const subscribers = context.pubsubClient.publish('newMessage')
-  } catch (err) {
-    console.error('got subscribers error:', err);
-  }
   return { message: args.message }
 }
 

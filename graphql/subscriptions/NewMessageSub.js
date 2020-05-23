@@ -6,7 +6,7 @@ import {
 } from 'graphql'
 import { createIterable } from '../../iterable'
 
-export const newMessageEvent = new events.EventEmitter()
+const newMessageEvent = new events.EventEmitter()
 
 const NewMessageSub = new GraphQLObjectType({
   name: 'NewMessageSub',
@@ -16,13 +16,14 @@ const NewMessageSub = new GraphQLObjectType({
 })
 
 const resolve = (payload) => {
-  return payload
+  console.log('message sub resolving:', payload);
+  
+  return payload[0]
 }
 
 const subscribe = (parentValue, args, context) => {
   const eventName = 'newMessage'
-  context.nameSub(eventName)
-  context.nameDBWatch('messages', 'addition')
+  context.assignConfigs('messages', 'addition', newMessageEvent, eventName)
   const iterable = createIterable(eventName, newMessageEvent)
   return iterable
 }

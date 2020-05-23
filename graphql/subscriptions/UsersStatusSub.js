@@ -18,13 +18,13 @@ const UsersStatusSub = new GraphQLObjectType({
 })
 
 const resolve = (payload) => {
-  return payload
+  console.log('resolve payload:', payload);
+  return payload[0]
 }
 
 const subscribe = (parentValue, args, context) => {
   const eventName = 'userStatusChange'
-  context.nameSub(eventName)
-  context.nameDBWatch('users', 'change')
+  context.assignConfigs('users', 'change', usersStatusEvent, eventName)
   const iterable = createIterable(eventName, usersStatusEvent)
   return iterable
 }
