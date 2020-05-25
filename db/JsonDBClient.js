@@ -97,21 +97,19 @@ export class JsonDBClient {
           const addedItem = differenceWith(newContent, oldContent, isEqual)
           console.log('item added:', addedItem);
           
-          this.watchedCollections[collectionName].addition.forEach((func) => {
-            console.log('func:', func);
-            
-            func(addedItem)
+          this.watchedCollections[collectionName].addition.forEach((watcher) => {            
+            watcher.func(addedItem)
           })
         } else if (oldContent.length > newContent.length) {
           const removedItem = differenceWith(oldContent, newContent, isEqual)
           console.log('removedItem:', removedItem);
 
-          this.watchedCollections[collectionName].removal.forEach((func) => func(removedItem))
+          this.watchedCollections[collectionName].removal.forEach((watcher) => watcher.func(removedItem))
         } else {
           const changedItem = differenceWith(newContent, oldContent, isEqual)
           console.log('changedItem:', changedItem);
           
-          this.watchedCollections[collectionName].change.forEach((func) => func(changedItem))
+          this.watchedCollections[collectionName].change.forEach((watcher) => watcher.func(changedItem))
         }
         this.dbMemoryData[collectionName] = newContent
       })
@@ -123,5 +121,15 @@ export class JsonDBClient {
     // TODO: remove the watch callback by id
     // if no one else needs to watch that file, unwatch it!
     // use unwatchFile(fileName, function to drop)
+    console.log({ collectionName, watchActionId });
+    const collectionToSearch = this.watchedCollections[collectionName]
+    this.watchedCollections[collectionName].addition = collectionToSearch.addition.filter(watcher => watcher.subName !== watchActionId)
+    this.watchedCollections[collectionName].removal = collectionToSearch.removal.filter(watcher => watcher.subName !== watchActionId)
+    this.watchedCollections[collectionName].change = collectionToSearch.change.filter(watcher => watcher.subName !== watchActionId)
+    if (!this.watchedCollections[collectionName].addition.length && !this.watchedCollections[collectionName].removal.length && !this.watchedCollections[collectionName].change.length) {
+      const filePath = `${this.dbPath}/${collectionName}.json`
+      unwatchFile(filePath)
+      console.log(`${collectionName} was unwatched`);
+    }    
   }
 }

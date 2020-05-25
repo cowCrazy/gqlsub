@@ -6,8 +6,6 @@ import {
 } from 'graphql'
 import { createIterable } from '../../iterable'
 
-export const usersStatusEvent = new events.EventEmitter()
-
 const UsersStatusSub = new GraphQLObjectType({
   name: 'UsersStatusSub',
   fields: {
@@ -23,6 +21,7 @@ const resolve = (payload) => {
 }
 
 const subscribe = (parentValue, args, context) => {
+  const usersStatusEvent = new events.EventEmitter()
   const eventName = 'userStatusChange'
   context.assignConfigs('users', 'change', usersStatusEvent, eventName)
   const iterable = createIterable(eventName, usersStatusEvent)

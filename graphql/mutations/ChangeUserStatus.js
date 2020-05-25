@@ -3,8 +3,6 @@ import {
   GraphQLString,
 } from 'graphql'
 
-import { usersStatusEvent } from '../subscriptions/UsersStatusSub'
-
 const typeDec = new GraphQLObjectType({
   name: 'ChangeUserStatus',
   fields: {

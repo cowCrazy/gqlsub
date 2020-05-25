@@ -38,13 +38,24 @@ export class PubSub {
   }
 
   drop(connectionId) {
+    const watchesToRemove = []
     const subNames = Object.keys(this.pubsub)
-    this.pubsub = subNames.reduce((acc, val, idx) => {    
-      const subConnections = this.pubsub[val].filter((item) => item.connectionId !== connectionId)    
+    this.pubsub = subNames.reduce((acc, val, idx) => { 
+      let collectionToDrop   
+      const subConnections = this.pubsub[val].filter((item) => {
+        const dropMe = item.connectionId !== connectionId
+        if (!dropMe) {
+          collectionToDrop = item.collection
+        }
+        return dropMe
+      })    
       if (subConnections.length) {
         acc[val] = subConnections
+      } else {        
+        watchesToRemove.push({ subName: val, collection: collectionToDrop })
       }
       return acc
     }, {})
+    return watchesToRemove
   }
 }

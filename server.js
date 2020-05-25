@@ -116,11 +116,12 @@ const wsOnMessage = (message, connection, connectionId) => {
           dbClient.watchCollection(
             pubsubConfigs.collectionName,
             {
-              [pubsubConfigs.DBEventType]: (payload) => {
-                console.log('db watch got payload:', payload);
-                
-                pubsubConfigs.systemEvent.emit(pubsubConfigs.subName, payload)
-                pubsubClient.publish(pubsubConfigs.subName)
+              [pubsubConfigs.DBEventType]: {
+                subName: pubsubConfigs.subName,
+                func: (payload) => {                  
+                  pubsubConfigs.systemEvent.emit(pubsubConfigs.subName, payload)
+                  pubsubClient.publish(pubsubConfigs.subName)
+                }
               }
             },
           )
@@ -159,7 +160,13 @@ const wsOnConnection = (connection, req) => {
   connection.on('message', (message) => wsOnMessage(message, connection, connectionId))
   connection.on('close', (message) => {
     console.log('connection closed');
-    pubsubClient.drop(connectionId)
+    const watchesToRemove = pubsubClient.drop(connectionId)
+    if (watchesToRemove.length) {
+      
+      watchesToRemove.forEach((removeRequest) => {
+        dbClient.unwatchCollection(removeRequest.collection, removeRequest.subName)
+      })
+    }
   })
   connection.on('error', (message) => {
     console.log('connection error');
