@@ -118,6 +118,7 @@ const wsOnMessage = (message, connection, connectionId) => {
             {
               [pubsubConfigs.DBEventType]: {
                 subName: pubsubConfigs.subName,
+                connectionId,
                 func: (payload) => {                  
                   pubsubConfigs.systemEvent.emit(pubsubConfigs.subName, payload)
                   pubsubClient.publish(pubsubConfigs.subName)
@@ -164,7 +165,7 @@ const wsOnConnection = (connection, req) => {
     if (watchesToRemove.length) {
       
       watchesToRemove.forEach((removeRequest) => {
-        dbClient.unwatchCollection(removeRequest.collection, removeRequest.subName)
+        dbClient.unwatchCollection(removeRequest.collection, removeRequest.subName, connectionId)
       })
     }
   })

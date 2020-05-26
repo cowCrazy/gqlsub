@@ -117,15 +117,15 @@ export class JsonDBClient {
   }
 
   // TODO: when done add to the constructor
-  unwatchCollection(collectionName, watchActionId) {
+  unwatchCollection(collectionName, subName, connectionId) {
     // TODO: remove the watch callback by id
     // if no one else needs to watch that file, unwatch it!
     // use unwatchFile(fileName, function to drop)
-    console.log({ collectionName, watchActionId });
+    console.log({ collectionName, subName, connectionId });
     const collectionToSearch = this.watchedCollections[collectionName]
-    this.watchedCollections[collectionName].addition = collectionToSearch.addition.filter(watcher => watcher.subName !== watchActionId)
-    this.watchedCollections[collectionName].removal = collectionToSearch.removal.filter(watcher => watcher.subName !== watchActionId)
-    this.watchedCollections[collectionName].change = collectionToSearch.change.filter(watcher => watcher.subName !== watchActionId)
+    this.watchedCollections[collectionName].addition = collectionToSearch.addition.filter(watcher => watcher.subName !== subName && watcher.connectionId !== connectionId)
+    this.watchedCollections[collectionName].removal = collectionToSearch.removal.filter(watcher => watcher.subName !== subName && watcher.connectionId !== connectionId)
+    this.watchedCollections[collectionName].change = collectionToSearch.change.filter(watcher => watcher.subName !== subName && watcher.connectionId !== connectionId)
     if (!this.watchedCollections[collectionName].addition.length && !this.watchedCollections[collectionName].removal.length && !this.watchedCollections[collectionName].change.length) {
       const filePath = `${this.dbPath}/${collectionName}.json`
       unwatchFile(filePath)
