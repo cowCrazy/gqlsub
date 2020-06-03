@@ -4,7 +4,7 @@ import {
 } from 'graphql'
 
 const type = new GraphQLObjectType({
-  name: 'AddMessage',
+  name: 'EditMessage',
   fields: {
     id: { type: GraphQLString },
     message: { type: GraphQLString },
@@ -12,22 +12,20 @@ const type = new GraphQLObjectType({
 })
 
 const args = {
+  id: { type: GraphQLString },
   message: { type: GraphQLString },
 }
 
 const resolve = (parentValue, args, context) => {  
   const db = context.dbClient.readCollection('messages')  
-  const lastMessage = db[db.length - 1]  
-  const nextId = lastMessage ? `${Number(lastMessage.id) + 1}` : '1'
-  const newMessage = {
-    id: nextId,
+  const targetMessageIndex = db.findIndex(item => item.id === args.id)
+  db[targetMessageIndex] = {
+    ...db[targetMessageIndex],
     message: args.message,
-    date: Date.now(),
-    edited: false,
-  }
-  db.push(newMessage)
+    edited: true,
+  }  
   context.dbClient.writeCollection('messages', db)
-  return newMessage
+  return db[targetMessageIndex]
 }
 
 export default {

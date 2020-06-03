@@ -7,6 +7,8 @@ import {
 
 import isEqual from 'lodash.isequal'
 import differenceWith from 'lodash.differencewith'
+import { attachWatcherFunc } from './attachWatcherFunc'
+import { removeWatcherFunc } from './removeWatcherFunc'
 
 export class JsonDBClient {
   constructor() {
@@ -24,35 +26,34 @@ export class JsonDBClient {
   }
 
   writeCollection(collectionName, data) {
-    const filePath = `${this.dbPath}/${collectionName}.json`
+    const filePath = `${this.dbPath}/${collectionName}.json`    
     writeFileSync(filePath, JSON.stringify(data, null, 2))
   }
 
   watchCollection(collectionName, { addition, removal, change }) {
     console.log('started a watch process:', collectionName, { addition, removal, change });
-    
-    // TODO: need to have a call back attached with id to each watch callback function
-    // so later on it can be tracked and remove
+
     if (this.watchedCollections[collectionName]) {
-      // TODO: code duplication of assign watcherFunction to the collection
-      // reduce to one occurrence 
       const currentWatchedCollection = this.watchedCollections[collectionName]
       if (addition) {
+        const nextAdditionArray = attachWatcherFunc('addition', addition.subName, currentWatchedCollection, addition)
         this.watchedCollections[collectionName] = {
           ...currentWatchedCollection,
-          addition: [...currentWatchedCollection.addition, addition],
+          addition: nextAdditionArray,
         }
       }
       if (removal) {
+        const nextRemovalArray = attachWatcherFunc('removal', removal.subName, currentWatchedCollection, removal)
         this.watchedCollections[collectionName] = {
           ...currentWatchedCollection,
-          removal: [...currentWatchedCollection.removal, removal],
+          removal: nextRemovalArray,
         }
       }
       if (change) {
+        const nextChangeArray = attachWatcherFunc('change', change.subName, currentWatchedCollection, change)
         this.watchedCollections[collectionName] = {
           ...currentWatchedCollection,
-          change: [...currentWatchedCollection.change, change],
+          change: nextChangeArray,
         }
       }
     } else {
@@ -68,48 +69,66 @@ export class JsonDBClient {
       const currentWatchedCollection = this.watchedCollections[collectionName]
 
       if (addition) {
+        const nextAdditionArray = attachWatcherFunc('addition', addition.subName, currentWatchedCollection, addition)
         this.watchedCollections[collectionName] = {
           ...currentWatchedCollection,
-          addition: [...currentWatchedCollection.addition, addition],
+          addition: nextAdditionArray,
         }
       }
       if (removal) {
+        const nextRemovalArray = attachWatcherFunc('removal', removal.subName, currentWatchedCollection, removal)
         this.watchedCollections[collectionName] = {
           ...currentWatchedCollection,
-          removal: [...currentWatchedCollection.removal, removal],
+          removal: nextRemovalArray,
         }
       }
       if (change) {
+        const nextChangeArray = attachWatcherFunc('change', change.subName, currentWatchedCollection, change)
         this.watchedCollections[collectionName] = {
           ...currentWatchedCollection,
-          change: [...currentWatchedCollection.change, change],
+          change: nextChangeArray,
         }
       }
   
       watchFile(filePath, { interval: 300 }, () => {
         const oldContent = this.dbMemoryData[collectionName]
         const newContent = JSON.parse(readFileSync(filePath))
-        console.log({
-          oldContent,
-          newContent,
-        })
         if (oldContent.length < newContent.length) {
           const addedItem = differenceWith(newContent, oldContent, isEqual)
           console.log('item added:', addedItem);
           
-          this.watchedCollections[collectionName].addition.forEach((watcher) => {            
-            watcher.func(addedItem)
+          const { addition } =  this.watchedCollections[collectionName]
+          addition.forEach((additionWatcher) => {            
+            const { watchers, publish } = additionWatcher
+            for (const watcher in watchers) {
+              watchers[watcher](addedItem)
+            }
+            publish()
           })
         } else if (oldContent.length > newContent.length) {
           const removedItem = differenceWith(oldContent, newContent, isEqual)
           console.log('removedItem:', removedItem);
 
-          this.watchedCollections[collectionName].removal.forEach((watcher) => watcher.func(removedItem))
+          const { removal } =  this.watchedCollections[collectionName]
+          removal.forEach((removalWatcher) => {
+            const { watchers, publish } = removalWatcher
+            for (const watcher in watchers) {
+              watchers[watcher](removedItem)
+            }
+            publish()
+          })
         } else {
           const changedItem = differenceWith(newContent, oldContent, isEqual)
           console.log('changedItem:', changedItem);
-          
-          this.watchedCollections[collectionName].change.forEach((watcher) => watcher.func(changedItem))
+        
+          const { change } =  this.watchedCollections[collectionName]
+          change.forEach((changeWatcher) => {
+            const { watchers, publish } = changeWatcher
+            for (const watcher in watchers) {
+              watchers[watcher](changedItem)
+            }
+            publish()
+          })
         }
         this.dbMemoryData[collectionName] = newContent
       })
@@ -117,16 +136,21 @@ export class JsonDBClient {
   }
 
   // TODO: when done add to the constructor
-  unwatchCollection(collectionName, subName, connectionId) {
+  unwatchCollection({ collectionName, subName, connectionId }) {
     // TODO: remove the watch callback by id
     // if no one else needs to watch that file, unwatch it!
     // use unwatchFile(fileName, function to drop)
     console.log({ collectionName, subName, connectionId });
     const collectionToSearch = this.watchedCollections[collectionName]
-    this.watchedCollections[collectionName].addition = collectionToSearch.addition.filter(watcher => watcher.subName !== subName && watcher.connectionId !== connectionId)
-    this.watchedCollections[collectionName].removal = collectionToSearch.removal.filter(watcher => watcher.subName !== subName && watcher.connectionId !== connectionId)
-    this.watchedCollections[collectionName].change = collectionToSearch.change.filter(watcher => watcher.subName !== subName && watcher.connectionId !== connectionId)
-    if (!this.watchedCollections[collectionName].addition.length && !this.watchedCollections[collectionName].removal.length && !this.watchedCollections[collectionName].change.length) {
+    
+    collectionToSearch.addition = removeWatcherFunc(subName, connectionId, collectionToSearch.addition)
+    collectionToSearch.removal = removeWatcherFunc(subName, connectionId, collectionToSearch.removal)
+    collectionToSearch.change = removeWatcherFunc(subName, connectionId, collectionToSearch.change)
+    if (
+      !collectionToSearch.addition.length
+      && !collectionToSearch.removal.length
+      && !collectionToSearch.change.length
+    ) {
       const filePath = `${this.dbPath}/${collectionName}.json`
       unwatchFile(filePath)
       console.log(`${collectionName} was unwatched`);

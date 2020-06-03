@@ -13,8 +13,6 @@ import ws from 'ws'
 
 import { RootSchema } from './graphql/Root'
 import { PubSub } from './pubsub'
-import { writeFileSync } from 'fs'
-import { inspect } from 'util'
 import { JsonDBClient } from './db/JsonDBClient'
 
 const dbClient = new JsonDBClient()
@@ -73,111 +71,146 @@ app.use('/graphql', (req, res) => {
 
 const wsOnMessage = (message, connection, connectionId) => {
   console.info('connection message:', message)
-  const { query, type, collection } = JSON.parse(message)
-  
-  let document
-  try {
-    document = parse(query)
-  } catch (error) {
-    console.error('pars res:', JSON.stringify(error));
-    connection.send(JSON.stringify({ errors: [{ error }] }))
-    return
-  }
+  const { query, type, collection, subName, close } = JSON.parse(message)
 
-  const valRes = validate(RootSchema, document)
-  if (valRes.length > 0) {
-    console.error('val res:', JSON.stringify(valRes));
-    connection.send(JSON.stringify({ errors: [{ error: valRes[0].message }] }))
-    return
+  console.log('incoming message:', { query, type, collection, subName, close });
+
+  if (close) {    
+    const processToEnd = pubsubClient.drop(subName, connectionId)
+    processToEnd.asyncIteratorToClose.forEach((removeRequest) => {
+      removeRequest.payload.return()
+    })
+    processToEnd.watchesToRemove.forEach((removeRequest) => {
+      dbClient.unwatchCollection({
+        collectionName: removeRequest.collection,
+        subName: removeRequest.subName,
+        connectionId
+      })
+    })
+    
   } else {
-    const operation = document.definitions[0].operation
-
-    if (operation === 'subscription') {
-      const pubsubConfigs = {} 
-      Promise.resolve(
-        subscribe({
-          schema: RootSchema,
-          document,
-          rootValue: {},
-          contextValue: {
-            connection,
-            assignConfigs: (collectionName, DBEventType, systemEvent, subName) => {
-              pubsubConfigs.collectionName = collectionName
-              pubsubConfigs.DBEventType = DBEventType
-              pubsubConfigs.systemEvent = systemEvent
-              pubsubConfigs.subName = subName
-            },
-            dbClient,
-            pubsubClient,
-          }
-        })
-      )
-        .then((gqlRes) => {
-          dbClient.watchCollection(
-            pubsubConfigs.collectionName,
-            {
-              [pubsubConfigs.DBEventType]: {
-                subName: pubsubConfigs.subName,
-                connectionId,
-                func: (payload) => {                  
-                  pubsubConfigs.systemEvent.emit(pubsubConfigs.subName, payload)
-                  pubsubClient.publish(pubsubConfigs.subName)
-                }
-              }
-            },
-          )
-          pubsubClient.subscribe(pubsubConfigs.subName, gqlRes, connection, collection, connectionId)
-        })
-        .catch(gqlErr => {
-          console.error('gqlErr:', gqlErr)
-        })
+    let document
+    try {
+      document = parse(query)
+    } catch (error) {
+      console.error('pars res:', JSON.stringify(error));
+      connection.send(JSON.stringify({ errors: [{ error }] }))
+      return
+    }
+  
+    const valRes = validate(RootSchema, document)
+    if (valRes.length > 0) {
+      console.error('val res:', JSON.stringify(valRes));
+      connection.send(JSON.stringify({ errors: [{ error: valRes[0].message }] }))
+      return
     } else {
-      Promise.resolve(
-        execute({
-          schema: RootSchema,
-          document,
-          rootValue: {},
-          contextValue: {
-            dbClient,
-            pubsubClient,
-          }
-        })
-      )  
-        .then(gqlRes => {
-          connection.send(JSON.stringify({ ...gqlRes, collection, type }))
-        })
-        .catch(gqlErr => {
-          console.error('gqlErr:', gqlErr)
-          connection.send(JSON.stringify(gqlErr))
-        })
+      const operation = document.definitions[0].operation
+  
+      if (operation === 'subscription') {
+        const pubsubConfigs = {} 
+        Promise.resolve(
+          subscribe({
+            schema: RootSchema,
+            document,
+            rootValue: {},
+            contextValue: {
+              connectionId,
+              connection,
+              assignConfigs: (
+                collectionName,
+                DBEventType,
+                systemEvent,
+                subName
+              ) => {
+                pubsubConfigs.collectionName = collectionName
+                pubsubConfigs.DBEventType = DBEventType
+                pubsubConfigs.systemEvent = systemEvent
+                pubsubConfigs.subName = subName
+              },
+              dbClient,
+              pubsubClient,
+            }
+          })
+        )
+          .then((gqlRes) => {            
+            dbClient.watchCollection(
+              pubsubConfigs.collectionName,
+              {
+                [pubsubConfigs.DBEventType]: {
+                  subName: pubsubConfigs.subName,
+                  connectionId,
+                  func: (payload) => pubsubConfigs.systemEvent.emit(pubsubConfigs.subName, payload),
+                  publish: () => pubsubClient.publish(pubsubConfigs.subName)
+                }
+              },
+            )
+
+            pubsubClient.subscribe(
+              pubsubConfigs.subName,
+              gqlRes,
+              connection,
+              collection,
+              connectionId
+            )
+          })
+          .catch(gqlErr => {
+            console.error('gqlErr:', gqlErr)
+          })
+      } else {
+        Promise.resolve(
+          execute({
+            schema: RootSchema,
+            document,
+            rootValue: {},
+            contextValue: {
+              dbClient,
+              pubsubClient,
+            }
+          })
+        )  
+          .then(gqlRes => {
+            connection.send(JSON.stringify({ ...gqlRes, collection, type }))
+          })
+          .catch(gqlErr => {
+            console.error('gqlErr:', gqlErr)
+            connection.send(JSON.stringify(gqlErr))
+          })
+      }
     }
   }
 }
 
-let connectionId = 1
-const wsOnConnection = (connection, req) => {
-  const url = req.url
+const setupConnection = (connection, connectionId) => {
+  connection.send(JSON.stringify({ collection: 'user', data: { connectionId } }))
 
   connection.on('message', (message) => wsOnMessage(message, connection, connectionId))
   connection.on('close', (message) => {
-    console.log('connection closed');
-    const watchesToRemove = pubsubClient.drop(connectionId)
-    if (watchesToRemove.length) {
-      
-      watchesToRemove.forEach((removeRequest) => {
-        dbClient.unwatchCollection(removeRequest.collection, removeRequest.subName, connectionId)
+    console.log('connection closing:', connectionId);
+    const processToEnd = pubsubClient.drop(null, connectionId)
+    processToEnd.asyncIteratorToClose.forEach((removeRequest) => {
+      removeRequest.payload.return()
+    })
+    processToEnd.watchesToRemove.forEach((removeRequest) => {
+      dbClient.unwatchCollection({
+        collectionName: removeRequest.collection,
+        subName: removeRequest.subName,
+        connectionId
       })
-    }
+    })
   })
   connection.on('error', (message) => {
     console.log('connection error');
   })
+}
 
+let connectionId = 0
+const wsOnConnection = (connection, req) => {
+  const url = req.url
   connectionId += 1
+  setupConnection(connection, connectionId)
 }
 
 wsServer.on('connection', wsOnConnection)
-
 
 server.listen(PORT, () => {
   console.success(`GraphQL Server is now running on http://localhost:${PORT}/graphql`);

@@ -4,14 +4,16 @@ export class PubSub {
     this.pubsub = {}
   }
 
-  subscribe(name, payload, connection, collection, connectionId) {  
+  subscribe(name, payload, connection, collection, connectionId) {     
     if (this.pubsub[name]) {
-      this.pubsub[name].push({
-        payload,
-        connection,
-        collection,
-        connectionId
-      })
+      if (!this.pubsub[name].find(item => item.connectionId === connectionId)) {
+        this.pubsub[name].push({
+          payload,
+          connection,
+          collection,
+          connectionId
+        })
+      }
     } else {
       this.pubsub[name] = [{
         payload,
@@ -23,12 +25,11 @@ export class PubSub {
   }
 
   publish(name, payload) {
-    const subscribers = this.pubsub[name]  
-    subscribers.forEach((subscriber) => {
+    const subscribers = this.pubsub[name]    
+    subscribers.forEach((subscriber) => {      
       subscriber.payload.next()
         .then((res) => {
-          console.log('pubres:', res);
-          const { value } = res  
+          const { value } = res
           subscriber.connection.send(JSON.stringify({ ...value, collection: subscriber.collection }))
         })
         .catch((err) => {
@@ -37,25 +38,40 @@ export class PubSub {
     })
   }
 
-  drop(connectionId) {
+  drop(subName, connectionId) {
     const watchesToRemove = []
+    const asyncIteratorToClose = []
     const subNames = Object.keys(this.pubsub)
-    this.pubsub = subNames.reduce((acc, val, idx) => { 
-      let collectionToDrop   
+    console.log({ pubsubBeforeDrop: this.pubsub });
+    const pubsubAfterDrop = subNames.reduce((acc, val) => { 
+      let itemToDrop   
       const subConnections = this.pubsub[val].filter((item) => {
-        const dropMe = item.connectionId !== connectionId
-        if (!dropMe) {
-          collectionToDrop = item.collection
+        let dropMe
+        if (subName) {
+          dropMe = item.connectionId === connectionId && val === subName
+        } else {
+          dropMe = item.connectionId === connectionId
         }
-        return dropMe
+        if (dropMe) {
+          itemToDrop = item
+          asyncIteratorToClose.push({ payload: itemToDrop.payload })
+        }
+        return !dropMe
       })    
       if (subConnections.length) {
         acc[val] = subConnections
-      } else {        
-        watchesToRemove.push({ subName: val, collection: collectionToDrop })
       }
+      if (itemToDrop) {        
+        watchesToRemove.push({ subName: val, collection: itemToDrop.collection })
+      }   
       return acc
     }, {})
-    return watchesToRemove
+    console.log({ pubsubAfterDrop });
+    
+    this.pubsub = pubsubAfterDrop
+    return {
+      asyncIteratorToClose,
+      watchesToRemove,
+    }
   }
 }

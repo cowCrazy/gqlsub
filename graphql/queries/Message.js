@@ -1,12 +1,16 @@
 import {
   GraphQLObjectType,
   GraphQLString,
+  GraphQLBoolean,
 } from 'graphql'
 
 const typeDec = new GraphQLObjectType({
   name: 'MessageType',
   fields: {
+    id: { type: GraphQLString },
     message: { type: GraphQLString },
+    date: { type: GraphQLString },
+    edited: { type: GraphQLBoolean },
   },
 })
 

@@ -1,11 +1,9 @@
 export const createIterable = (eventName, eventEmitter) => {
   const eventsQue = []
-  const pushToQue = (payload) => {
-    console.log('iterable payload:', payload);
-    
+  const pushToQue = (payload) => {    
     eventsQue.push(payload)
   }
-  eventEmitter.on(eventName, pushToQue)
+  eventEmitter.addListener(eventName, pushToQue)
   return {
     [Symbol.asyncIterator]() {
       return {
@@ -19,6 +17,11 @@ export const createIterable = (eventName, eventEmitter) => {
             return Promise.resolve({ value: nextEvent, done: false })
           }
           return Promise.resolve({ done: false })
+        },
+        return() {          
+          eventsQue.length = 0
+          eventEmitter.removeListener(eventName, pushToQue)
+          return Promise.resolve({ value: null, done: true })
         }
       };
     }
