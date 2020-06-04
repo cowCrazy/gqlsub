@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node -r esm server.js",
-    "dev": "nodemon -r esm server.js",
+    "dev": "yarn start:dev-server & yarn start:react",
+    "start:react": "cd ./frontend/client && yarn start",
+    "start:dev-server": "nodemon -r esm server.js 3001",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
