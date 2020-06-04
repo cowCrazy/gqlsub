@@ -44,7 +44,7 @@ app.get('/chat', (request, response) => {
   response.sendFile(path.resolve(__dirname, './frontend/build/chat.html'))
 })
 app.get('/ping', (request, response) => {  
-  response.send(JSON.stringify({ message: 'welcome'}))
+  response.send('pong')
 })
 
 app.use('/graphql', (req, res) => {  

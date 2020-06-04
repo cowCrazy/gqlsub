@@ -1,8 +1,62 @@
 [
   {
-    "message": "hello"
+    "id": "1",
+    "message": "hello",
+    "date": 1591195559356,
+    "edited": false
   },
   {
-    "message": "world"
+    "id": "2",
+    "message": "world big",
+    "date": 1591197113534,
+    "edited": true
+  },
+  {
+    "id": "3",
+    "message": "world huge",
+    "date": 1591197192567,
+    "edited": true
+  },
+  {
+    "id": "4",
+    "message": "bye",
+    "date": 1591197246724,
+    "edited": false
+  },
+  {
+    "id": "5",
+    "message": "bye",
+    "date": 1591197276727,
+    "edited": true
+  },
+  {
+    "id": "6",
+    "message": "bye 111",
+    "date": 1591197440960,
+    "edited": true
+  },
+  {
+    "id": "7",
+    "message": "again?",
+    "date": 1591197763584,
+    "edited": false
+  },
+  {
+    "id": "8",
+    "message": "and again and again",
+    "date": 1591198025455,
+    "edited": true
+  },
+  {
+    "id": "9",
+    "message": "all I see is changes ",
+    "date": 1591199291647,
+    "edited": true
+  },
+  {
+    "id": "10",
+    "message": "hey",
+    "date": 1591199418143,
+    "edited": false
   }
 ]
