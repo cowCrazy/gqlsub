@@ -1,107 +1,38 @@
 import React, { Component } from 'react'
 
-import { messagesQue } from './global-functions/graphql-requests/messagesQuery';
-import { newMessageSub } from './global-functions/graphql-requests/newMessageSub';
-import { newMessageMut } from './global-functions/graphql-requests/newMessageMut';
-import { usersStatusSub } from './global-functions/graphql-requests/usersStatusSub';
-import { usersQue } from './global-functions/graphql-requests/usersQuery';
-import { editMessageSub } from './global-functions/graphql-requests/editMessageSub';
-import Message from './Message';
+import Message from './Message'
+import { connect } from 'react-redux'
 
-export default class ChatRoom extends Component {
+import { connectWsConnectionAction } from 'global-state/ws-connection-state/wsConnectionActions'
+import { sendMessageAction } from 'global-state/messages-state/messagesActions'
+
+class ChatRoom extends Component {
   constructor(props) {
     super(props)
 
     this.state = {
-      messages: [],
       newMessage: '',
       users: [],
-      user: {},
-      wsConnection: null,
     }
   }
 
   componentDidMount() {
-    const wsConnection = new WebSocket('ws://localhost:3000/subscriptions')
-    wsConnection.onopen = (initMsg) => this.wsOnConnection(initMsg, wsConnection)
-    wsConnection.onmessage = this.wsMessageReceived
-    wsConnection.onclose = () => {
-      console.log('connection closed');  
-    }
+    const { connect } = this.props
+    connect()
+  }
+
+  handleSendNewMessage = () => {
+    const { newMessage } = this.state
+    const { sendMessage } = this.props
+    sendMessage(newMessage)
     this.setState({
-      wsConnection
+      newMessage: '',
     })
-  }
-
-  wsOnConnection = (initMsg, wsConnection) => {
-    wsConnection.send(newMessageSub())
-    wsConnection.send(editMessageSub())
-    wsConnection.send(messagesQue())
-    wsConnection.send(usersStatusSub())
-    wsConnection.send(usersQue())
-  }
-
-  wsMessageReceived = (msg) => {
-    console.log('got ws msg:', msg);
-    const data = JSON.parse(msg.data)
-    
-    if (data.errors) {
-      console.log('got error back');
-    } else if (data.collection === 'user') {
-      this.updateUser(data.data)
-    } else if (data.collection === 'messages') {
-      this.updateMessages(data.data)
-    }  else if (data.collection === 'users') {
-      this.updateUsers(data.data)
-    }
-  }
-
-  updateUser = (data) => {
-    console.log('got user data:', data);
-    
-    this.setState({
-      user: { ...data },
-    })
-  }
-
-  updateMessages = (data) => {
-    console.log(data);
-    const { messages } = this.state
-    if (data?.reader?.messages?.list) {
-      const incomingMessages = data.reader.messages.list
-      this.setState({
-        messages: [...incomingMessages]
-      })
-    } else if (data?.newMessageSub?.message) {
-      const incomingMessages = [data.newMessageSub]
-      this.setState({
-        messages: [...messages, ...incomingMessages]
-      })
-    } else if (data?.editMessageSub?.message) {
-      const incomingMessages = [...messages]
-      const messageIdx = incomingMessages.findIndex(message => message.id === data.editMessageSub.id)
-      const { id, ...rest } = data.editMessageSub
-      incomingMessages[messageIdx] =  {
-        ...incomingMessages[messageIdx],
-        ...rest,
-      }
-      this.setState({
-        messages: [...incomingMessages]
-      })
-    }
   }
 
   handleEditNewMessage = (e) => {
     this.setState({
-      newMessage: e.target.value,
-    })
-  }
-
-  handleSendNewMessage = () => {
-    const { wsConnection, newMessage } = this.state
-    wsConnection.send(newMessageMut(newMessage))
-    this.setState({
-      newMessage: '',
+      newMessage: e.target.value
     })
   }
 
@@ -110,30 +41,14 @@ export default class ChatRoom extends Component {
     wsConnection.send(JSON.stringify({ close: true, subName: 'newMessage' }))
   }
 
-  updateUsers = (data) => {
-    console.log(data);
-    const { users } = this.state
-    if (data?.reader?.users?.list) {
-      const incomingUsers = data.reader.users.list
-      this.setState({
-        users: [...users, ...incomingUsers]
-      })
-    } else if (data?.usersStatusSub?.id) {
-      const updatedUsers = users.map((item) => item.id === data.usersStatusSub.id ? data.usersStatusSub : item)
-      this.setState({
-        users: [...updatedUsers]
-      })
-    }
-  }
-
   render() {
+    const { newMessage } = this.state
     const {
       messages,
-      newMessage,
-      users,
-      user,
       wsConnection,
-    } = this.state
+      user,
+      users,
+    } = this.props
     return (
       <div style={{ display: 'flex' }}>
         {
@@ -176,3 +91,20 @@ export default class ChatRoom extends Component {
     )
   }
 }
+
+const mapStateToProps = storeState => ({
+  messages: storeState.messagesReducer.messages,
+  wsConnection: storeState.wsConnectionReducer.connection,
+  user: storeState.userReducer,
+  users: storeState.usersReducer.users,
+})
+
+const mapDispatchToProps = (dispatch) => ({
+  connect: () => dispatch(connectWsConnectionAction()),
+  sendMessage: (message) => dispatch(sendMessageAction(message))
+})
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(ChatRoom)

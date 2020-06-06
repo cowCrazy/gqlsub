@@ -1,7 +1,10 @@
 import React, { Component } from 'react'
-import { editMessageMut } from './global-functions/graphql-requests/editMessageMut'
+import { connect } from 'react-redux'
 
-export default class Message extends Component {
+import { editMessageMut } from 'global-functions/graphql-requests/editMessageMut'
+import { editMessageAction } from 'global-state/messages-state/messagesActions'
+
+class Message extends Component {
   constructor(props) {
     super(props)
 
@@ -41,9 +44,9 @@ export default class Message extends Component {
   }
 
   handleSend = () => {
-    const { wsConnection, id } = this.props
+    const { editMessage, id } = this.props
     const { message } = this.state
-    wsConnection.send(editMessageMut(id, message))
+    editMessage(id, message)
     this.setState({
       isEdited: false
     })
@@ -61,7 +64,7 @@ export default class Message extends Component {
           }}
         >
           <div style={{ flex: '1' }}>
-            <button style={{ backgroundColor: 'red' }} onClick={this.toggleEdit}>Cancel</button>
+            <button onClick={this.toggleEdit}>Cancel</button>
           </div>
           <div style={{ flex: '2' }}>
             <input value={message} onChange={this.handleEdit} />
@@ -95,3 +98,12 @@ export default class Message extends Component {
     )
   }
 }
+
+const mapDispatchToProps = dispatch => ({
+  editMessage: (id, message) => dispatch(editMessageAction(id, message))
+})
+
+export default connect(
+  null,
+  mapDispatchToProps,
+)(Message)

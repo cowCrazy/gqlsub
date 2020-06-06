@@ -7,7 +7,7 @@
     "start": "node -r esm server.js",
     "dev": "yarn start:dev-server & yarn start:react",
     "start:react": "cd ./frontend/client && yarn start",
-    "start:dev-server": "nodemon -r esm server.js 3001",
+    "start:dev-server": "nodemon --ignore ./frontend --ignore ./db -r esm server.js 3001",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -19,9 +19,9 @@
   },
   {
     "id": "4",
-    "message": "bye",
+    "message": "bye bella",
     "date": 1591197246724,
-    "edited": false
+    "edited": true
   },
   {
     "id": "5",
@@ -33,7 +33,7 @@
     "id": "6",
     "message": "bye 111",
     "date": 1591197440960,
-    "edited": false
+    "edited": true
   },
   {
     "id": "7",
@@ -55,8 +55,32 @@
   },
   {
     "id": "10",
-    "message": "hey",
+    "message": "hey there",
     "date": 1591199418143,
+    "edited": true
+  },
+  {
+    "id": "11",
+    "message": "new message from redux",
+    "date": 1591421422135,
     "edited": false
+  },
+  {
+    "id": "12",
+    "message": "can I edit it?",
+    "date": 1591421494147,
+    "edited": true
+  },
+  {
+    "id": "13",
+    "message": "now",
+    "date": 1591425580339,
+    "edited": false
+  },
+  {
+    "id": "14",
+    "message": "editing",
+    "date": 1591425674427,
+    "edited": true
   }
 ]

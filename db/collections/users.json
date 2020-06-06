@@ -2,11 +2,11 @@
   {
     "id": "1",
     "username": "user1",
-    "status": "online"
+    "status": "offline"
   },
   {
     "id": "2",
     "username": "user2",
-    "status": "offline"
+    "status": "online"
   }
 ]
