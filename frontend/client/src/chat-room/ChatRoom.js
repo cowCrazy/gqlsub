@@ -1,8 +1,7 @@
 import React, { Component } from 'react'
-
-import Message from './Message'
 import { connect } from 'react-redux'
 
+import Message from './Message'
 import { connectWsConnectionAction } from 'global-state/ws-connection-state/wsConnectionActions'
 import { sendMessageAction } from 'global-state/messages-state/messagesActions'
 

@@ -26,7 +26,13 @@ const server = createServer(app)
 
 const wsServer = new ws.Server({
   server,
-  path: '/subscriptions'
+  path: '/subscriptions',
+  // TODO: use it to authenticate users accessing the websocket
+  // verifyClient: (info, done) => {
+  //   console.log('verify info:', info)
+  //   done(false)
+  // },
+
 })
 
 const corsOptions = {
@@ -45,6 +51,33 @@ app.get('/chat', (request, response) => {
 })
 app.get('/ping', (request, response) => {  
   response.send('pong')
+})
+
+app.post('/login', (request, response) => {  
+  const { username, password } = request.body
+  const users = dbClient.readCollection('users')
+  const loginUser = users.find(user => user.username === username && user.password == password)
+  if (loginUser) {
+    response.send('auth success')
+  } else {
+    response.send('auth fail')
+  }
+})
+
+app.post('/register', (request, response) => {  
+  const { username, password } = request.body
+  const users = dbClient.readCollection('users')
+  const regUser = users.find(user => user.username === username)
+  if (regUser) {
+    response.send('user already exist')
+  } else {
+    const lastUser = users[users.length - 1]
+    const lastUserId = lastUser ? lastUser.id : 0
+    const newUser = { id: Number(lastUserId) + 1, username, password }
+    users.push(newUser)
+    dbClient.writeCollection('users', users)
+    response.send('successfully registered')
+  }
 })
 
 app.use('/graphql', (req, res) => {  

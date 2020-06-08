@@ -1,17 +1,19 @@
 import React from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
 
-import store from './store/store'
-import ChatRoom from './ChatRoom'
+import configureStore from './store/store'
+import RouterRoot from 'RouterRoot'
 
-function App() {
+const reduxStore = configureStore()
+
+const App = () => {
   return (
     <div>
-      <ReduxProvider store={store()}>
-        <ChatRoom />
+      <ReduxProvider store={reduxStore}>
+        <RouterRoot />
       </ReduxProvider>
     </div>
-  );
+  )
 }
 
 export default App
