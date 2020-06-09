@@ -5,7 +5,6 @@ import {
   GraphQLString,
   GraphQLBoolean,
 } from 'graphql'
-import { createIterable } from '../../iterable'
 
 const NewMessageSub = new GraphQLObjectType({
   name: 'NewMessageSub',
@@ -25,7 +24,7 @@ const subscribe = (parentValue, args, context) => {
   const newMessageEvent = new events.EventEmitter()
   const eventName = 'newMessage'  
   context.assignConfigs('messages', 'addition', newMessageEvent, eventName)
-  const iterable = createIterable(eventName, newMessageEvent)
+  const iterable = context.createAsyncIterable(eventName, newMessageEvent)
   console.log('iterable created:', iterable)
   return iterable
 }

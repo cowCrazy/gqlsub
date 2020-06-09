@@ -78,6 +78,7 @@ export const createSubscriptionServer = (server, RootSchema) => {
                 },
                 dbClient,
                 pubsubClient,
+                createAsyncIterable,
               }
             })
           )
@@ -113,7 +114,6 @@ export const createSubscriptionServer = (server, RootSchema) => {
               rootValue: {},
               contextValue: {
                 dbClient,
-                pubsubClient,
               }
             })
           )  

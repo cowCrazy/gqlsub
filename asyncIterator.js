@@ -1,4 +1,4 @@
-export const createIterable = (eventName, eventEmitter) => {
+export const createAsyncIterable = (eventName, eventEmitter) => {
   const eventsQue = []
   const pushToQue = (payload) => {    
     eventsQue.push(payload)

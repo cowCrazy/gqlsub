@@ -41,7 +41,7 @@ app.post('/login', (request, response) => {
   const { username, password } = request.body
   const users = dbClient.readCollection('users')
   const loginUserIndex = users.findIndex(user => user.username === username && user.password == password)
-  if (loginUserIndex) {
+  if (loginUserIndex > -1) {
     users[loginUserIndex].status = 'online'
     dbClient.writeCollection('users', users)
     response.send('auth success')
