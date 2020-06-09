@@ -10,6 +10,7 @@ import { newMessageSub } from 'global-functions/graphql-requests/newMessageSub'
 import { usersStatusSub } from 'global-functions/graphql-requests/usersStatusSub'
 import { usersQue } from 'global-functions/graphql-requests/usersQuery'
 import { editMessageSub } from 'global-functions/graphql-requests/editMessageSub'
+import { newUserSub } from 'global-functions/graphql-requests/newUserSub'
 
 import { rootMessagesAction } from 'global-state/messages-state/messagesActions'
 import { rootUserActions } from 'global-state/user-state/userActions'
@@ -34,6 +35,7 @@ const onConnectWsConnectionAction = (initMsg, wsConnection) => {
     wsConnection.send(editMessageSub())
     wsConnection.send(messagesQue())
     wsConnection.send(usersStatusSub())
+    wsConnection.send(newUserSub())
     wsConnection.send(usersQue())
     dispatch({ type: WS_CONNECTION_SUCCESS, payload: wsConnection })
   }

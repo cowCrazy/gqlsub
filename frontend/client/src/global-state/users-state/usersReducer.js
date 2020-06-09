@@ -1,6 +1,7 @@
 import {
   USERS_INITIAL_INCOMING_SUCCESS,
-  USER_STATUS_CHANGE_USERS,
+  USERS_STATUS_CHANGE_USER,
+  USERS_NEW_USER,
 } from './usersTypes'
 
 const initialState = {
@@ -14,9 +15,7 @@ export const usersReducer = (state = initialState, action) => {
         ...state,
         users: action.payload,
       }
-    case USER_STATUS_CHANGE_USERS:
-      console.log('user status changed:', action);
-      
+    case USERS_STATUS_CHANGE_USER:      
       const incomingUser = action.payload
       const nextUsers = [...state.users]
       const userIdx = nextUsers.findIndex(user => user.id === incomingUser.id)
@@ -28,6 +27,11 @@ export const usersReducer = (state = initialState, action) => {
       return {
         ...state,
         users: nextUsers,
+      }
+    case USERS_NEW_USER:
+      return {
+        ...state,
+        users: [...state.users, action.payload]
       }
     default:
       return state

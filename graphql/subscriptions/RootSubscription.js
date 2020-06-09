@@ -3,6 +3,7 @@ import { GraphQLObjectType } from 'graphql'
 import NewMessageSub from './NewMessageSub';
 import UsersStatusSub from './UsersStatusSub';
 import EditMessageSub from './EditMessageSub';
+import NewUserSub from './NewUserSub';
 
 export const RootSubscriptions = new GraphQLObjectType({
   name: 'RootSubscriptions',
@@ -21,6 +22,11 @@ export const RootSubscriptions = new GraphQLObjectType({
       type: UsersStatusSub.type,
       resolve: UsersStatusSub.resolve,
       subscribe: UsersStatusSub.subscribe,
+    },
+    newUserSub: {
+      type: NewUserSub.type,
+      resolve: NewUserSub.resolve,
+      subscribe: NewUserSub.subscribe,
     }
   }
 })

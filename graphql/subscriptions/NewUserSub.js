@@ -6,8 +6,8 @@ import {
 } from 'graphql'
 import { createIterable } from '../../iterable'
 
-const UsersStatusSub = new GraphQLObjectType({
-  name: 'UsersStatusSub',
+const NewUserSub = new GraphQLObjectType({
+  name: 'NewUserSub',
   fields: {
     id: { type: GraphQLString },
     username: { type: GraphQLString },
@@ -16,19 +16,22 @@ const UsersStatusSub = new GraphQLObjectType({
 })
 
 const resolve = (payload) => {
+  console.log('got new user payload:', payload);
   return payload[0]
 }
 
 const subscribe = (parentValue, args, context) => {
+  console.log('subscribed for new users');
+  
   const usersStatusEvent = new events.EventEmitter()
-  const eventName = 'userStatusChange'
-  context.assignConfigs('users', 'change', usersStatusEvent, eventName)
+  const eventName = 'newUser'
+  context.assignConfigs('users', 'addition', usersStatusEvent, eventName)
   const iterable = createIterable(eventName, usersStatusEvent)
   return iterable
 }
 
 export default {
-  type: UsersStatusSub,
+  type: NewUserSub,
   resolve,
   subscribe,
 }

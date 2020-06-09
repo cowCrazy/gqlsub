@@ -1,6 +1,7 @@
 import {
   USERS_INITIAL_INCOMING_SUCCESS,
-  USER_STATUS_CHANGE_USERS,
+  USERS_STATUS_CHANGE_USER,
+  USERS_NEW_USER,
 } from './usersTypes'
 
 export const rootUsersActions = (data) => {
@@ -9,6 +10,8 @@ export const rootUsersActions = (data) => {
       dispatch(connectionSuccessUserAction(data.reader.users.list))
     } else if (data?.usersStatusSub?.id) {
       dispatch(userStatusChangeUsersAction(data.usersStatusSub))
+    } else if (data?.newUserSub?.id) {
+      dispatch(newUserUsersAction(data.newUserSub))
     }
   }
 }
@@ -21,6 +24,12 @@ const connectionSuccessUserAction = (data) => {
 
 const userStatusChangeUsersAction = (data) => {
   return (dispatch) => {
-    dispatch({ type: USER_STATUS_CHANGE_USERS, payload: data })
+    dispatch({ type: USERS_STATUS_CHANGE_USER, payload: data })
+  }
+}
+
+const newUserUsersAction = (data) => {
+  return (dispatch) => {
+    dispatch({ type: USERS_NEW_USER, payload: data })
   }
 }
